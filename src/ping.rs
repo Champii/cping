@@ -90,7 +90,7 @@ impl Ping {
     fn print(&mut self) {
         self.term_size = termion::terminal_size().unwrap();
 
-        if self.term_size.0 < 10 || self.term_size.1 < 10 {
+        if self.term_size.0 == 0 || self.term_size.1 == 0 {
             println!("Error: Too small terminal");
             return;
         }

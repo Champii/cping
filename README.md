@@ -36,3 +36,9 @@ FLAGS:
 ARGS:
     <address>    the address/domain to ping
 ```
+
+## Build
+
+Dependancies: Rust
+
+`cargo build`
