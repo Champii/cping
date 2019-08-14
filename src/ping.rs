@@ -90,6 +90,11 @@ impl Ping {
     fn print(&mut self) {
         self.term_size = termion::terminal_size().unwrap();
 
+        if self.term_size.0 < 10 || self.term_size.1 < 10 {
+            println!("Error: Too small terminal");
+            return;
+        }
+
         print!("{}", termion::clear::All);
 
         let history_pos = if !self.config.no_title {
@@ -104,7 +109,7 @@ impl Ping {
             (1, 1)
         };
 
-        let legend_pos = if !self.config.no_history {
+        let graph_pos = if !self.config.no_history {
             self.print_history(history_pos);
 
             if self.config.no_legend {
@@ -116,15 +121,15 @@ impl Ping {
             history_pos
         };
 
-        let graph_pos = if !self.config.no_legend {
-            self.print_legend(legend_pos);
-            (1, legend_pos.1 + 1)
+        let legend_pos = if !self.config.no_graph {
+            self.print_histogram(graph_pos);
+            (1, graph_pos.1 + 1)
         } else {
-            legend_pos
+            graph_pos
         };
 
-        if !self.config.no_graph {
-            self.print_histogram(graph_pos);
+        if !self.config.no_legend {
+            self.print_legend(legend_pos);
         }
     }
 }

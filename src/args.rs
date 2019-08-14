@@ -4,7 +4,7 @@ use super::config::Config;
 
 pub fn parse_config() -> Config {
     let matches = App::new("CPing")
-        .version("1.0")
+        .version("0.1")
         .author("Champii <contact@champii.io>")
         .about("Colorful Ping")
         .arg(
@@ -33,7 +33,7 @@ pub fn parse_config() -> Config {
         )
         .arg(
             Arg::with_name("address")
-                .help("the address to ping")
+                .help("the address/domain to ping")
                 .index(1)
                 .required(true),
         )
