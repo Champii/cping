@@ -5,4 +5,5 @@ pub struct Config {
     pub no_history: bool,
     pub no_title: bool,
     pub addr: String,
+    pub ping_args: Vec<String>,
 }

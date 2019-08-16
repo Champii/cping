@@ -73,6 +73,7 @@ impl Ping {
             i += 1;
         }
     }
+
     fn print_histogram(&self, pos: (u16, u16)) {
         print!("{}", cursor::Goto(1, pos.1));
 
@@ -87,6 +88,7 @@ impl Ping {
             print!("{}", PingEntry::get_histo_char(histo.time))
         }
     }
+
     fn print(&mut self) {
         self.term_size = termion::terminal_size().unwrap();
 
@@ -145,7 +147,7 @@ pub fn run() -> Result<(), Error> {
         let mut ctx = Ping::new(config.clone());
 
         let stdout = Command::new("ping")
-            .args(&[&config.addr])
+            .args(&config.ping_args)
             .stdout(Stdio::piped())
             .spawn()
             .unwrap()

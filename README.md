@@ -1,7 +1,6 @@
 # Colorful Ping (cping)
 
-This is a simple wrapper around unix `ping` program to add some colors.
-Only basic usage is implemented for now.
+This is a simple wrapper around unix `ping` program to add some colors and a nice interface.
 
 ## Demo
 
@@ -10,7 +9,7 @@ Only basic usage is implemented for now.
 ## Features
 
 - Interactive
-- Adapt to the terminal
+- Responsive interface
 - Configurable
 - Cool colors
 - Cool histogram graph
@@ -23,7 +22,7 @@ Champii <contact@champii.io>
 Colorful Ping
 
 USAGE:
-    cping [FLAGS] <address>
+    cping [FLAGS] <address> [-- <ping-args>]
 
 FLAGS:
     -h, --help          Prints help information
@@ -34,11 +33,27 @@ FLAGS:
     -V, --version       Prints version information
 
 ARGS:
-    <address>    the address/domain to ping
+    <address>      the address/domain to ping
+    <ping-args>    Pass arguments to ping
 ```
 
 ## Build
 
-Dependancies: Rust
+Dependancies: Rust (Tested with rust 1.37 nightly, but should work on previous stable releases)
 
 `cargo build`
+
+## Install
+
+`cargo install --path .`
+
+To reinstall or update, add the `--force` flag
+
+## Todo
+
+- Nice error handling
+- Timeout handling
+- Better line description
+- Live stats
+- Keyboard events
+- Tests

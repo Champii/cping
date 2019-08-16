@@ -37,6 +37,11 @@ pub fn parse_config() -> Config {
                 .index(1)
                 .required(true),
         )
+        .arg(
+            Arg::with_name("ping-args")
+                .help("Pass arguments to ping")
+                .last(true),
+        )
         .get_matches();
 
     let no_legend = matches.is_present("no-legend");
@@ -45,6 +50,18 @@ pub fn parse_config() -> Config {
     let no_title = matches.is_present("no-title");
 
     let addr = matches.value_of("address").unwrap();
+    let mut ping_args: Vec<String> = matches
+        .values_of("ping-args")
+        .map(|items| {
+            items
+                .collect::<Vec<_>>()
+                .iter()
+                .map(|item| item.to_string())
+                .collect()
+        })
+        .unwrap_or_default();
+
+    ping_args.push(addr.to_string());
 
     Config {
         no_legend,
@@ -52,5 +69,6 @@ pub fn parse_config() -> Config {
         no_graph,
         no_title,
         addr: addr.to_string(),
+        ping_args,
     }
 }
