@@ -1,8 +1,32 @@
-use termion::color::Fg;
+use termion::color::{Bg, Fg};
 use termion::{color, style};
 
 #[derive(Debug, Clone)]
+pub enum EntryType {
+    Title(String),
+    Pong(String),
+    Error(String),
+}
+
+impl EntryType {
+    pub fn get_inner(&self) -> String {
+        match self.clone() {
+            EntryType::Title(s) => s,
+            EntryType::Pong(s) => s,
+            EntryType::Error(s) => s,
+        }
+    }
+}
+
+impl Default for EntryType {
+    fn default() -> EntryType {
+        EntryType::Error("DEFAULT".to_string())
+    }
+}
+
+#[derive(Debug, Clone, Default)]
 pub struct PingEntry {
+    pub t: EntryType,
     pub bytes: u8,
     pub from_domain: String,
     pub from_ipv6: String,
@@ -15,18 +39,13 @@ impl PingEntry {
     fn preformat(&self) -> String {
         let histo = Self::get_histo_char(self.time);
 
-        format!(
-            "{}{}{:>6.1} ms {} {}",
-            histo,
-            style::Bold,
-            self.time,
-            self.from_domain,
-            self.ttl
-        )
+        format!("{} {}", histo, self.t.get_inner(),)
     }
 
     pub fn get_histo_char(time: f32) -> String {
-        if time <= 10.0 {
+        if time <= 0.0 {
+            format!("{}{}X", Bg(color::Red), Fg(color::White))
+        } else if time <= 10.0 {
             format!("{}\u{2581}", Fg(color::LightBlue))
         } else if time <= 20.0 {
             format!("{}\u{2582}", Fg(color::Cyan))
@@ -41,29 +60,48 @@ impl PingEntry {
         } else if time <= 1000.0 {
             format!("{}\u{2587}", Fg(color::Red))
         } else {
-            format!("{}\u{2588}", Fg(color::Magenta))
+            format!("{}\u{2588}", Fg(color::LightMagenta))
         }
     }
 
     fn format(&self) -> String {
         let s = self.preformat();
 
-        format!("{}{} {:>5}", style::Reset, s, self.icmp_seq)
+        format!("{}{}", style::Reset, s)
     }
 
     pub fn print(&self) {
-        print!("{}", self.format());
+        match self.t {
+            EntryType::Title(_) => (),
+            EntryType::Pong(_) => print!("{}", self.format()),
+            EntryType::Error(_) => print!("{}", self.format()),
+        }
     }
 
     pub fn parse(line: String) -> PingEntry {
+        let mut res = PingEntry::default();
+
         let splitted: Vec<&str> = line.split(" ").collect();
 
-        let bytes = splitted[0].parse().unwrap();
-        let from_domain = String::from(splitted[3]);
+        if splitted[0] == "PING" {
+            res.t = EntryType::Title(line.clone());
+
+            return res;
+        }
+        if splitted[0].parse::<i32>().is_err() {
+            res.t = EntryType::Error(line.clone());
+
+            return res;
+        }
+
+        res.t = EntryType::Pong(line.clone());
+
+        res.bytes = splitted[0].parse().unwrap();
+        res.from_domain = String::from(splitted[3]);
 
         let mut i = 4;
 
-        let from_ipv6 = if !splitted[i].contains("icmp") {
+        res.from_ipv6 = if !splitted[i].contains("icmp") {
             let mut from_ipv6 = String::from(splitted[i]);
             from_ipv6.remove(from_ipv6.len() - 1);
             from_ipv6.remove(from_ipv6.len() - 1);
@@ -75,25 +113,18 @@ impl PingEntry {
         };
 
         let icmp_seq: Vec<&str> = splitted[i].split("=").collect();
-        let icmp_seq = icmp_seq[1].parse().unwrap();
+        res.icmp_seq = icmp_seq[1].parse().unwrap();
 
         i += 1;
 
         let ttl: Vec<&str> = splitted[i].split("=").collect();
-        let ttl = ttl[1].parse().unwrap();
+        res.ttl = ttl[1].parse().unwrap();
 
         i += 1;
 
         let time: Vec<&str> = splitted[i].split("=").collect();
-        let time = time[1].parse().unwrap();
+        res.time = time[1].parse().unwrap();
 
-        PingEntry {
-            bytes,
-            from_domain,
-            from_ipv6,
-            icmp_seq,
-            ttl,
-            time,
-        }
+        res
     }
 }

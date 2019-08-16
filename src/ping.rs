@@ -1,13 +1,17 @@
 use std::io::{self, Write};
-use std::io::{BufRead, BufReader, Error, ErrorKind};
+use std::io::{BufRead, BufReader};
 use std::process::{Command, Stdio};
+use std::sync::{Arc, RwLock};
 use termion::event::{Event, Key};
 use termion::input::TermRead;
 use termion::raw::IntoRawMode;
-use termion::{color, cursor, style};
+use termion::{
+    color::{self, Bg, Fg},
+    cursor, style,
+};
 
 use super::config::Config;
-use super::ping_entry::PingEntry;
+use super::ping_entry::{EntryType, PingEntry};
 
 pub struct Ping {
     pub config: Config,
@@ -48,7 +52,8 @@ impl Ping {
             print!("{} < {}ms ", PingEntry::get_histo_char(time), time);
         }
 
-        print!("{} > {}ms", PingEntry::get_histo_char(1000.1), 1000.0);
+        print!("{} > {}ms ", PingEntry::get_histo_char(1000.1), 1000.0);
+        print!("{} Error{}", PingEntry::get_histo_char(-1.0), style::Reset);
     }
 
     fn print_history(&self, pos: (u16, u16)) {
@@ -72,6 +77,7 @@ impl Ping {
             histo.print();
             i += 1;
         }
+        print!("{}", style::Reset);
     }
 
     fn print_histogram(&self, pos: (u16, u16)) {
@@ -85,7 +91,7 @@ impl Ping {
         };
 
         for histo in &histos {
-            print!("{}", PingEntry::get_histo_char(histo.time))
+            print!("{}{}", PingEntry::get_histo_char(histo.time), style::Reset)
         }
     }
 
@@ -101,10 +107,13 @@ impl Ping {
 
         let history_pos = if !self.config.no_title {
             print!(
-                "{}{}PING: {}",
+                "{}{}{}{}{}",
                 cursor::Goto(1, 1),
-                style::Reset,
-                self.config.addr,
+                style::Bold,
+                Bg(color::White),
+                Fg(color::Black),
+                self.header,
+                // style::Reset
             );
             (1, 2)
         } else {
@@ -136,56 +145,104 @@ impl Ping {
     }
 }
 
-pub fn run() -> Result<(), Error> {
+pub fn run() -> Result<(), String> {
     let config = super::args::parse_config();
 
     let mut stdout = io::stdout().into_raw_mode().unwrap();
 
     print!("{}", cursor::Hide);
 
-    std::thread::spawn(move || {
-        let mut ctx = Ping::new(config.clone());
+    let ctx = Arc::new(RwLock::new(Ping::new(config.clone())));
 
-        let stdout = Command::new("ping")
-            .args(&config.ping_args)
-            .stdout(Stdio::piped())
-            .spawn()
-            .unwrap()
-            .stdout
-            .ok_or_else(|| Error::new(ErrorKind::Other, "Could not capture standard output."))
-            .unwrap();
+    let mut child = Command::new("ping")
+        .args(&config.ping_args)
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()
+        .unwrap();
+
+    let ctx2 = ctx.clone();
+
+    let (close_tx, close_rx) = std::sync::mpsc::channel();
+
+    let close_tx2 = close_tx.clone();
+
+    std::thread::spawn(move || {
+        let ctx = ctx.clone();
+
+        let stdout = child.stdout.take().unwrap();
 
         let reader = BufReader::new(stdout);
+
+        std::thread::spawn(move || {
+            let ctx = ctx2.clone();
+
+            let stderr = child.stderr.take().unwrap();
+
+            let reader = BufReader::new(stderr);
+
+            let mut err_aggr = String::new();
+
+            reader
+                .lines()
+                .filter_map(|line| line.ok())
+                .map(PingEntry::parse)
+                .for_each(|entry| {
+                    let mut ctx = ctx.write().unwrap();
+
+                    if ctx.histo.len() == 0 {
+                        err_aggr.push_str(&(entry.t.get_inner() + &"\n"));
+                        return;
+                    }
+                    ctx.add(entry);
+                    ctx.print();
+
+                    ctx.stdout.flush().unwrap();
+                });
+
+            close_tx.send(Err(err_aggr)).unwrap();
+        });
 
         reader
             .lines()
             .filter_map(|line| line.ok())
-            .filter(|line| line.find("ttl").is_some())
             .map(PingEntry::parse)
             .for_each(|entry| {
-                ctx.add(entry);
+                let mut ctx = ctx.write().unwrap();
+
+                match entry.t {
+                    EntryType::Title(t) => (*ctx).header = t,
+                    _ => ctx.add(entry),
+                };
+
                 ctx.print();
 
                 ctx.stdout.flush().unwrap();
             });
     });
 
-    let stdin = io::stdin();
+    std::thread::spawn(move || {
+        let stdin = io::stdin();
 
-    for c in stdin.events() {
-        let evt = c.unwrap();
+        for c in stdin.events() {
+            let evt = c.unwrap();
 
-        match evt {
-            Event::Key(Key::Char('q')) => break,
-            Event::Key(Key::Ctrl('c')) => break,
-            Event::Key(Key::Esc) => break,
-            _ => {}
-        };
-    }
+            match evt {
+                Event::Key(Key::Char('q')) => break,
+                Event::Key(Key::Ctrl('c')) => break,
+                Event::Key(Key::Esc) => break,
+                _ => {}
+            };
+        }
+
+        close_tx2.send(Ok(())).unwrap();
+    });
+
+    let err = close_rx.recv().unwrap();
 
     print!("{}", cursor::Show);
 
     stdout.flush().unwrap();
 
-    Ok(())
+    err
 }

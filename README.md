@@ -5,6 +5,7 @@ This is a simple wrapper around unix `ping` program to add some colors and a nic
 ## Demo
 
 ![demo](/media/demo.jpg)
+![demo2](/media/demo2.jpg)
 
 ## Features
 
@@ -51,9 +52,6 @@ To reinstall or update, add the `--force` flag
 
 ## Todo
 
-- Nice error handling
-- Timeout handling
-- Better line description
 - Live stats
 - Keyboard events
 - Tests
