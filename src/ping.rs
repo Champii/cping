@@ -91,7 +91,12 @@ impl Ping {
         };
 
         for histo in &histos {
-            print!("{}{}", PingEntry::get_histo_char(histo.time), style::Reset)
+            print!(
+                "{}{}{}",
+                style::Bold,
+                PingEntry::get_histo_char(histo.time),
+                style::Reset
+            )
         }
     }
 

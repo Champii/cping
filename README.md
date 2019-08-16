@@ -5,7 +5,7 @@ This is a simple wrapper around unix `ping` program to add some colors and a nic
 ## Demo
 
 ![demo](/media/demo.jpg)
-![demo2](/media/demo2.jpg)
+![demo](/media/demo2.jpg)
 
 ## Features
 
