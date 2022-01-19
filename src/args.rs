@@ -8,37 +8,37 @@ pub fn parse_config() -> Config {
         .author("Champii <contact@champii.io>")
         .about("Colorful Ping")
         .arg(
-            Arg::with_name("no-legend")
-                .short("L")
+            Arg::new("no-legend")
+                .short('L')
                 .long("no-legend")
                 .help("Hide the legend"),
         )
         .arg(
-            Arg::with_name("no-history")
-                .short("H")
+            Arg::new("no-history")
+                .short('H')
                 .long("no-history")
                 .help("Hide the history"),
         )
         .arg(
-            Arg::with_name("no-graph")
-                .short("G")
+            Arg::new("no-graph")
+                .short('G')
                 .long("no-graph")
                 .help("Hide the graph"),
         )
         .arg(
-            Arg::with_name("no-title")
-                .short("T")
+            Arg::new("no-title")
+                .short('T')
                 .long("no-title")
                 .help("Hide the title"),
         )
         .arg(
-            Arg::with_name("address")
+            Arg::new("address")
                 .help("the address/domain to ping")
                 .index(1)
                 .required(true),
         )
         .arg(
-            Arg::with_name("ping-args")
+            Arg::new("ping-args")
                 .help("Pass arguments to ping")
                 .last(true),
         )
